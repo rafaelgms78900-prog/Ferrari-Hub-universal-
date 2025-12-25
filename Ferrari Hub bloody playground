@@ -1,0 +1,437 @@
+-- ⚽ BLUE LOCK TP - INTERFACE PREMIUM
+-- Tecla: F
+-- Interface: Arrastável com efeitos
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local localPlayer = Players.LocalPlayer
+
+-- CONFIGURAÇÕES
+local TELEPORT_KEY = Enum.KeyCode.F
+local GUI_COLORS = {
+    Primary = Color3.fromRGB(0, 150, 255),     -- Azul Blue Lock
+    Secondary = Color3.fromRGB(20, 25, 40),    -- Fundo escuro
+    Accent = Color3.fromRGB(255, 255, 255),    -- Branco
+    Success = Color3.fromRGB(0, 255, 150),     -- Verde
+    Warning = Color3.fromRGB(255, 200, 0),     -- Amarelo
+    Error = Color3.fromRGB(255, 50, 50)        -- Vermelho
+}
+
+-- Variáveis
+local mainGui
+local connection
+local debounce = false
+local guiElements = {}
+
+-- =============================================
+-- SISTEMA DE TELEPORTE
+-- =============================================
+
+function teleportToBall()
+    if debounce then return end
+    debounce = true
+    
+    if guiElements and guiElements.StatusLabel then
+        guiElements.StatusLabel.Text = "🌀 BUSCANDO BOLA..."
+        guiElements.StatusLabel.TextColor3 = GUI_COLORS.Warning
+    end
+    
+    -- Procurar bola no workspace
+    local ball
+    for _, obj in pairs(workspace:GetChildren()) do
+        if obj:IsA("BasePart") and (
+            obj.Name == "Football" or 
+            obj.Name == "Ball" or 
+            obj.Name == "SoccerBall" or
+            string.find(string.lower(obj.Name), "ball")
+        ) then
+            ball = obj
+            break
+        end
+    end
+    
+    if not ball then
+        if guiElements and guiElements.StatusLabel then
+            guiElements.StatusLabel.Text = "❌ BOLA NÃO ENCONTRADA"
+            guiElements.StatusLabel.TextColor3 = GUI_COLORS.Error
+        end
+        wait(2)
+        if guiElements and guiElements.StatusLabel then
+            guiElements.StatusLabel.Text = "⚽ PRONTO"
+            guiElements.StatusLabel.TextColor3 = GUI_COLORS.Accent
+        end
+        debounce = false
+        return
+    end
+    
+    local character = localPlayer.Character
+    if not character then
+        debounce = false
+        return
+    end
+    
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then
+        debounce = false
+        return
+    end
+    
+    if guiElements and guiElements.StatusLabel then
+        guiElements.StatusLabel.Text = "🚀 TELEPORTANDO..."
+        guiElements.StatusLabel.TextColor3 = GUI_COLORS.Warning
+    end
+    
+    -- Efeito visual
+    for i = 1, 5 do
+        humanoidRootPart.Transparency = i / 5
+        wait(0.03)
+    end
+    
+    -- Teleportar para bola
+    humanoidRootPart.CFrame = CFrame.new(ball.Position + Vector3.new(0, 5, 0))
+    
+    -- Restaurar transparência
+    wait(0.1)
+    humanoidRootPart.Transparency = 0
+    
+    if guiElements and guiElements.StatusLabel then
+        guiElements.StatusLabel.Text = "✅ NA BOLA!"
+        guiElements.StatusLabel.TextColor3 = GUI_COLORS.Success
+    end
+    
+    wait(1)
+    
+    if guiElements and guiElements.StatusLabel then
+        guiElements.StatusLabel.Text = "⚽ PRONTO"
+        guiElements.StatusLabel.TextColor3 = GUI_COLORS.Accent
+    end
+    
+    debounce = false
+end
+
+-- =============================================
+-- INTERFACE PREMIUM
+-- =============================================
+
+function createPremiumInterface()
+    if mainGui then mainGui:Destroy() end
+    
+    mainGui = Instance.new("ScreenGui")
+    mainGui.Name = "BlueLockTP_Premium"
+    mainGui.ResetOnSpawn = false
+    mainGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+    mainGui.Parent = localPlayer:WaitForChild("PlayerGui")
+    
+    -- Frame principal
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 320, 0, 220)
+    mainFrame.Position = UDim2.new(0, 30, 0.5, -110)
+    mainFrame.BackgroundColor3 = GUI_COLORS.Secondary
+    mainFrame.BackgroundTransparency = 0.1
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Active = true
+    mainFrame.Draggable = true
+    
+    local mainCorner = Instance.new("UICorner")
+    mainCorner.CornerRadius = UDim.new(0, 15)
+    mainCorner.Parent = mainFrame
+    
+    local mainStroke = Instance.new("UIStroke")
+    mainStroke.Color = GUI_COLORS.Primary
+    mainStroke.Thickness = 3
+    mainStroke.Parent = mainFrame
+    
+    -- Barra de título com gradiente
+    local titleBar = Instance.new("Frame")
+    titleBar.Name = "TitleBar"
+    titleBar.Size = UDim2.new(1, 0, 0, 50)
+    titleBar.BackgroundColor3 = GUI_COLORS.Primary
+    titleBar.BackgroundTransparency = 0.1
+    titleBar.BorderSizePixel = 0
+    
+    local titleBarCorner = Instance.new("UICorner")
+    titleBarCorner.CornerRadius = UDim.new(0, 15, 0, 0)
+    titleBarCorner.Parent = titleBar
+    
+    -- Gradiente na barra
+    local titleGradient = Instance.new("UIGradient")
+    titleGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 120, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 180, 255))
+    })
+    titleGradient.Rotation = 45
+    titleGradient.Parent = titleBar
+    
+    -- Logo
+    local logo = Instance.new("TextLabel")
+    logo.Size = UDim2.new(1, -20, 1, 0)
+    logo.Position = UDim2.new(0, 10, 0, 0)
+    logo.BackgroundTransparency = 1
+    logo.Text = "⚽ BLUE LOCK TELEPORT"
+    logo.TextColor3 = GUI_COLORS.Accent
+    logo.TextSize = 22
+    logo.Font = Enum.Font.GothamBlack
+    logo.TextXAlignment = Enum.TextXAlignment.Left
+    
+    local logoStroke = Instance.new("UIStroke")
+    logoStroke.Color = Color3.fromRGB(0, 0, 0)
+    logoStroke.Thickness = 2
+    logoStroke.Parent = logo
+    
+    -- Área de conteúdo
+    local contentFrame = Instance.new("Frame")
+    contentFrame.Name = "ContentFrame"
+    contentFrame.Size = UDim2.new(1, -40, 1, -70)
+    contentFrame.Position = UDim2.new(0, 20, 0, 60)
+    contentFrame.BackgroundTransparency = 1
+    
+    -- Instrução principal
+    local instructionFrame = Instance.new("Frame")
+    instructionFrame.Size = UDim2.new(1, 0, 0, 80)
+    instructionFrame.BackgroundColor3 = Color3.fromRGB(30, 35, 50)
+    instructionFrame.BackgroundTransparency = 0.3
+    instructionFrame.BorderSizePixel = 0
+    
+    local instructionCorner = Instance.new("UICorner")
+    instructionCorner.CornerRadius = UDim.new(0, 10)
+    instructionCorner.Parent = instructionFrame
+    
+    local instructionStroke = Instance.new("UIStroke")
+    instructionStroke.Color = GUI_COLORS.Primary
+    instructionStroke.Thickness = 2
+    instructionStroke.Parent = instructionFrame
+    
+    local instructionText = Instance.new("TextLabel")
+    instructionText.Size = UDim2.new(1, -20, 1, -20)
+    instructionText.Position = UDim2.new(0, 10, 0, 10)
+    instructionText.BackgroundTransparency = 1
+    instructionText.Text = "PRESSIONE [F]\nPARA TELEPORTAR\nPARA A BOLA"
+    instructionText.TextColor3 = GUI_COLORS.Accent
+    instructionText.TextSize = 18
+    instructionText.Font = Enum.Font.GothamSemibold
+    instructionText.TextWrapped = true
+    instructionText.TextXAlignment = Enum.TextXAlignment.Center
+    
+    -- Tecla visual
+    local keyVisual = Instance.new("Frame")
+    keyVisual.Size = UDim2.new(0, 50, 0, 50)
+    keyVisual.Position = UDim2.new(0.5, -25, 0, 90)
+    keyVisual.BackgroundColor3 = GUI_COLORS.Primary
+    keyVisual.BackgroundTransparency = 0.2
+    
+    local keyCorner = Instance.new("UICorner")
+    keyCorner.CornerRadius = UDim.new(0, 10)
+    keyCorner.Parent = keyVisual
+    
+    local keyStroke = Instance.new("UIStroke")
+    keyStroke.Color = GUI_COLORS.Accent
+    keyStroke.Thickness = 3
+    keyStroke.Parent = keyVisual
+    
+    local keyText = Instance.new("TextLabel")
+    keyText.Size = UDim2.new(1, 0, 1, 0)
+    keyText.BackgroundTransparency = 1
+    keyText.Text = "F"
+    keyText.TextColor3 = GUI_COLORS.Accent
+    keyText.TextSize = 28
+    keyText.Font = Enum.Font.GothamBlack
+    
+    -- Status
+    local statusContainer = Instance.new("Frame")
+    statusContainer.Size = UDim2.new(1, 0, 0, 40)
+    statusContainer.Position = UDim2.new(0, 0, 1, -40)
+    statusContainer.BackgroundTransparency = 1
+    
+    local statusLabel = Instance.new("TextLabel")
+    statusLabel.Size = UDim2.new(1, 0, 1, 0)
+    statusLabel.BackgroundTransparency = 1
+    statusLabel.Text = "⚽ PRONTO"
+    statusLabel.TextColor3 = GUI_COLORS.Accent
+    statusLabel.TextSize = 16
+    statusLabel.Font = Enum.Font.GothamMedium
+    statusLabel.TextXAlignment = Enum.TextXAlignment.Center
+    
+    -- Efeito de brilho no status
+    local statusGlow = Instance.new("Frame")
+    statusGlow.Size = UDim2.new(1, 0, 0, 2)
+    statusGlow.Position = UDim2.new(0, 0, 1, -2)
+    statusGlow.BackgroundColor3 = GUI_COLORS.Accent
+    statusGlow.BorderSizePixel = 0
+    
+    local glowGradient = Instance.new("UIGradient")
+    glowGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, GUI_COLORS.Accent),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(200, 230, 255)),
+        ColorSequenceKeypoint.new(1, GUI_COLORS.Accent)
+    })
+    glowGradient.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 0.5),
+        NumberSequenceKeypoint.new(1, 0)
+    })
+    glowGradient.Parent = statusGlow
+    
+    -- Animação do brilho
+    spawn(function()
+        while statusGlow.Parent do
+            TweenService:Create(statusGlow, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+                BackgroundTransparency = 0.8
+            }):Play()
+            wait(1.5)
+        end
+    end)
+    
+    -- Hierarquia
+    logo.Parent = titleBar
+    titleBar.Parent = mainFrame
+    
+    instructionText.Parent = instructionFrame
+    instructionFrame.Parent = contentFrame
+    
+    keyText.Parent = keyVisual
+    keyVisual.Parent = contentFrame
+    
+    statusLabel.Parent = statusContainer
+    statusGlow.Parent = statusContainer
+    statusContainer.Parent = contentFrame
+    
+    contentFrame.Parent = mainFrame
+    
+    mainFrame.Parent = mainGui
+    
+    -- Sistema de arrastar
+    local dragging = false
+    local dragInput, dragStart, startPos
+    
+    local function update(input)
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(
+            startPos.X.Scale, 
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale, 
+            startPos.Y.Offset + delta.Y
+        )
+    end
+    
+    titleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = mainFrame.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    
+    titleBar.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
+    
+    -- Efeitos hover na tecla
+    keyVisual.MouseEnter:Connect(function()
+        TweenService:Create(keyVisual, TweenInfo.new(0.2), {
+            Size = UDim2.new(0, 55, 0, 55),
+            Position = UDim2.new(0.5, -27.5, 0, 87.5),
+            BackgroundTransparency = 0
+        }):Play()
+        TweenService:Create(keyStroke, TweenInfo.new(0.2), {
+            Color = Color3.fromRGB(255, 220, 100)
+        }):Play()
+    end)
+    
+    keyVisual.MouseLeave:Connect(function()
+        TweenService:Create(keyVisual, TweenInfo.new(0.2), {
+            Size = UDim2.new(0, 50, 0, 50),
+            Position = UDim2.new(0.5, -25, 0, 90),
+            BackgroundTransparency = 0.2
+        }):Play()
+        TweenService:Create(keyStroke, TweenInfo.new(0.2), {
+            Color = GUI_COLORS.Accent
+        }):Play()
+    end)
+    
+    guiElements = {
+        MainFrame = mainFrame,
+        StatusLabel = statusLabel,
+        KeyVisual = keyVisual
+    }
+    
+    -- Configurar tecla F
+    setupTeleportKey()
+    
+    -- Efeito de entrada
+    mainFrame.Position = UDim2.new(0, 30, 0.5, -300)
+    mainFrame.BackgroundTransparency = 1
+    
+    TweenService:Create(mainFrame, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Position = UDim2.new(0, 30, 0.5, -110),
+        BackgroundTransparency = 0.1
+    }):Play()
+    
+    return mainFrame
+end
+
+function setupTeleportKey()
+    if connection then connection:Disconnect() end
+    
+    connection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        
+        if input.KeyCode == TELEPORT_KEY then
+            -- Efeito visual na tecla
+            if guiElements and guiElements.KeyVisual then
+                local originalSize = guiElements.KeyVisual.Size
+                TweenService:Create(guiElements.KeyVisual, TweenInfo.new(0.1), {
+                    Size = UDim2.new(0, 45, 0, 45)
+                }):Play()
+                wait(0.1)
+                TweenService:Create(guiElements.KeyVisual, TweenInfo.new(0.1), {
+                    Size = originalSize
+                }):Play()
+            end
+            
+            teleportToBall()
+        end
+    end)
+end
+
+-- =============================================
+-- INICIALIZAÇÃO
+-- =============================================
+
+function initializeBlueLockTP()
+    createPremiumInterface()
+    
+    print("🎮 Blue Lock TP Premium carregado!")
+    print("⚽ Tecla F: Teleporta para a bola")
+    print("📍 Interface arrastável e com efeitos")
+end
+
+-- Aguardar personagem
+local function waitForCharacter()
+    if localPlayer.Character then
+        wait(1)
+        initializeBlueLockTP()
+    else
+        localPlayer.CharacterAdded:Wait()
+        wait(2)
+        initializeBlueLockTP()
+    end
+end
+
+-- Iniciar
+spawn(waitForCharacter)
