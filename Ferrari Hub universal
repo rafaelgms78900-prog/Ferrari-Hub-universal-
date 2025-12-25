@@ -1,0 +1,314 @@
+-- Ferrari Hub v7.0 - Interface Simplificada
+-- Tecla T: Ativa teleporte
+-- Sem botão minimizar
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local localPlayer = Players.LocalPlayer
+
+-- CONFIGURAÇÕES
+local TELEPORT_KEY = Enum.KeyCode.T  -- Tecla T ativa teleporte
+
+-- CORES SIMPLIFICADAS
+local GUI_COLORS = {
+    Primary = Color3.fromRGB(155, 89, 182),    -- Roxo
+    Secondary = Color3.fromRGB(44, 62, 80),    -- Azul Escuro
+    Accent = Color3.fromRGB(241, 196, 15),     -- Amarelo
+    Text = Color3.fromRGB(255, 255, 255)       -- Branco
+}
+
+-- Variáveis
+local mainGui
+local connection
+local debounce = false
+local guiElements = {}
+local menuVisible = true
+
+-- =============================================
+-- INTERFACE SIMPLIFICADA
+-- =============================================
+
+function createSimpleInterface()
+    if mainGui then mainGui:Destroy() end
+    
+    mainGui = Instance.new("ScreenGui")
+    mainGui.Name = "FerrariHubSimple"
+    mainGui.ResetOnSpawn = false
+    mainGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+    mainGui.Parent = localPlayer:WaitForChild("PlayerGui")
+    
+    -- Frame principal
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 300, 0, 200)
+    mainFrame.Position = UDim2.new(0, 20, 0.5, -100)
+    mainFrame.BackgroundColor3 = GUI_COLORS.Secondary
+    mainFrame.BackgroundTransparency = 0.1
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Active = true
+    mainFrame.Draggable = true
+    
+    local mainCorner = Instance.new("UICorner")
+    mainCorner.CornerRadius = UDim.new(0, 15)
+    mainCorner.Parent = mainFrame
+    
+    local mainStroke = Instance.new("UIStroke")
+    mainStroke.Color = GUI_COLORS.Primary
+    mainStroke.Thickness = 2
+    mainStroke.Parent = mainFrame
+    
+    -- Barra de título
+    local titleBar = Instance.new("Frame")
+    titleBar.Name = "TitleBar"
+    titleBar.Size = UDim2.new(1, 0, 0, 40)
+    titleBar.BackgroundColor3 = GUI_COLORS.Primary
+    titleBar.BackgroundTransparency = 0.2
+    titleBar.BorderSizePixel = 0
+    
+    local titleBarCorner = Instance.new("UICorner")
+    titleBarCorner.CornerRadius = UDim.new(0, 15, 0, 0)
+    titleBarCorner.Parent = titleBar
+    
+    -- Logo
+    local logo = Instance.new("TextLabel")
+    logo.Size = UDim2.new(1, 0, 1, 0)
+    logo.Position = UDim2.new(0, 0, 0, 0)
+    logo.BackgroundTransparency = 1
+    logo.Text = "🏎️ FERRARI HUB"
+    logo.TextColor3 = GUI_COLORS.Accent
+    logo.TextSize = 20
+    logo.TextXAlignment = Enum.TextXAlignment.Center
+    
+    -- Área de conteúdo
+    local contentFrame = Instance.new("Frame")
+    contentFrame.Name = "ContentFrame"
+    contentFrame.Size = UDim2.new(1, -20, 1, -60)
+    contentFrame.Position = UDim2.new(0, 10, 0, 50)
+    contentFrame.BackgroundTransparency = 1
+    
+    -- Instrução principal
+    local instruction = Instance.new("TextLabel")
+    instruction.Size = UDim2.new(1, 0, 0, 40)
+    instruction.BackgroundTransparency = 1
+    instruction.Text = "PRESSIONE [T] PARA TELEPORTAR"
+    instruction.TextColor3 = GUI_COLORS.Accent
+    instruction.TextSize = 16
+    instruction.TextXAlignment = Enum.TextXAlignment.Center
+    
+    -- Status
+    local statusLabel = Instance.new("TextLabel")
+    statusLabel.Size = UDim2.new(1, 0, 0, 30)
+    statusLabel.Position = UDim2.new(0, 0, 1, -30)
+    statusLabel.BackgroundTransparency = 1
+    statusLabel.Text = "PRONTO"
+    statusLabel.TextColor3 = GUI_COLORS.Accent
+    statusLabel.TextSize = 14
+    statusLabel.TextXAlignment = Enum.TextXAlignment.Center
+    
+    -- Efeito visual
+    local glowEffect = Instance.new("Frame")
+    glowEffect.Size = UDim2.new(1, 0, 0, 3)
+    glowEffect.Position = UDim2.new(0, 0, 0, 37)
+    glowEffect.BackgroundColor3 = GUI_COLORS.Accent
+    glowEffect.BorderSizePixel = 0
+    
+    -- Hierarquia
+    logo.Parent = titleBar
+    titleBar.Parent = mainFrame
+    
+    instruction.Parent = contentFrame
+    statusLabel.Parent = contentFrame
+    glowEffect.Parent = contentFrame
+    contentFrame.Parent = mainFrame
+    
+    mainFrame.Parent = mainGui
+    
+    -- Sistema de arrastar
+    local dragging = false
+    local dragInput, dragStart, startPos
+    
+    local function update(input)
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(
+            startPos.X.Scale, 
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale, 
+            startPos.Y.Offset + delta.Y
+        )
+    end
+    
+    titleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = mainFrame.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    
+    titleBar.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
+    
+    guiElements = {
+        MainFrame = mainFrame,
+        StatusLabel = statusLabel,
+        Instruction = instruction
+    }
+    
+    -- Configurar tecla T para teleporte
+    setupTeleportKey()
+    
+    return mainFrame
+end
+
+function setupTeleportKey()
+    if connection then connection:Disconnect() end
+    
+    connection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        
+        if input.KeyCode == TELEPORT_KEY then
+            teleportToHealButton()
+        end
+    end)
+end
+
+-- =============================================
+-- SISTEMA DE TELEPORTE
+-- =============================================
+
+function teleportToHealButton()
+    if debounce then return end
+    debounce = true
+    
+    if guiElements and guiElements.StatusLabel then
+        guiElements.StatusLabel.Text = "TELEPORTANDO..."
+        guiElements.StatusLabel.TextColor3 = GUI_COLORS.Accent
+    end
+    
+    -- Buscar TouchInterest
+    local touchInterest
+    local map = workspace:FindFirstChild("Map")
+    
+    if map then
+        local tower = map:FindFirstChild("Tower")
+        if tower then
+            local traps = tower:FindFirstChild("Traps")
+            if traps then
+                local buttons = traps:FindFirstChild("Buttons")
+                if buttons then
+                    local healBrick = buttons:FindFirstChild("Heal100Brick")
+                    if healBrick then
+                        touchInterest = healBrick:FindFirstChild("TouchInterest")
+                    end
+                end
+            end
+        end
+    end
+    
+    if not touchInterest then
+        debounce = false
+        return
+    end
+    
+    local character = localPlayer.Character
+    if not character then
+        debounce = false
+        return
+    end
+    
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then
+        debounce = false
+        return
+    end
+    
+    local originalCFrame = humanoidRootPart.CFrame
+    local touchPart = touchInterest.Parent
+    
+    if touchPart and touchPart:IsA("BasePart") then
+        -- Efeito visual
+        for i = 1, 5 do
+            humanoidRootPart.Transparency = i / 5
+            wait(0.03)
+        end
+        
+        -- Teleportar
+        humanoidRootPart.CFrame = touchPart.CFrame + Vector3.new(0, 3, 0)
+        
+        spawn(function()
+            wait(0.1)
+            humanoidRootPart.Transparency = 0
+        end)
+        
+        -- Esperar 2 segundos
+        wait(2)
+        
+        -- Efeito visual de retorno
+        for i = 1, 5 do
+            humanoidRootPart.Transparency = i / 5
+            wait(0.03)
+        end
+        
+        -- Retornar
+        humanoidRootPart.CFrame = originalCFrame
+        
+        wait(0.1)
+        humanoidRootPart.Transparency = 0
+        
+        -- Atualizar status
+        if guiElements and guiElements.StatusLabel then
+            guiElements.StatusLabel.Text = "TELEPORTE COMPLETO"
+            guiElements.StatusLabel.TextColor3 = GUI_COLORS.Accent
+            
+            wait(2)
+            
+            guiElements.StatusLabel.Text = "PRONTO"
+        end
+    end
+    
+    debounce = false
+end
+
+-- =============================================
+-- INICIALIZAÇÃO
+-- =============================================
+
+function initializeHub()
+    -- Criar interface simples
+    createSimpleInterface()
+    
+    print("🏎️ Ferrari Hub - Interface Simplificada")
+    print("🎮 Tecla T: Ativa teleporte")
+end
+
+-- Aguardar personagem carregar
+local function waitForCharacter()
+    if localPlayer.Character then
+        wait(1)
+        initializeHub()
+    else
+        localPlayer.CharacterAdded:Wait()
+        wait(2)
+        initializeHub()
+    end
+end
+
+-- Iniciar sistema
+spawn(waitForCharacter)
